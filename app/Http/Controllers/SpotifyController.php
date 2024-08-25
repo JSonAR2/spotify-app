@@ -74,7 +74,7 @@ class SpotifyController extends Controller
             'user-follow-modify',
         ];
 
-        return redirect('https://accounts.spotify.com/authorize?client_id=fa83b94e477f46619c9c8b18ccf25f79&response_type=code&redirect_uri=http://localhost:8000/callback&show_dialog=true&scope=' . implode('%20', $scopes));
+        return redirect('https://accounts.spotify.com/authorize?client_id=fa83b94e477f46619c9c8b18ccf25f79&response_type=code&redirect_uri=https://playlistrix.co.uk/callback&show_dialog=true&scope=' . implode('%20', $scopes));
         // $response = Http::asForm()->post('https://accounts.spotify.com/api/token', [
         //     'client_id' => 'fa83b94e477f46619c9c8b18ccf25f79',
         //     'response_type' => 'code',
@@ -91,7 +91,7 @@ class SpotifyController extends Controller
         $response = Http::withBasicAuth('fa83b94e477f46619c9c8b18ccf25f79', '074eda52578c42a387c7393731452505')->asForm()->post('https://accounts.spotify.com/api/token', [
             'grant_type' => 'authorization_code',
             'code' => $code,
-            'redirect_uri' => 'http://localhost:8000/callback',
+            'redirect_uri' => 'https://playlistrix.co.uk/callback',
         ]);
 
         $access_token = $response->json()['access_token'];
@@ -127,6 +127,7 @@ class SpotifyController extends Controller
             $saved_tracks = Http::withToken($access_token)->get('https://api.spotify.com/v1/me/tracks?limit=50&offset=' . $count)->json();
             foreach ($saved_tracks['items'] as $track) {
                 $entity = Track::firstOrCreate([
+                    'user_id' => Auth::id(),
                     'track_id' => $track['track']['id'],
                 ]);
 

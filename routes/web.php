@@ -19,7 +19,8 @@ Route::get('/spotify/user_auth', [SpotifyController::class, 'user_auth']);
 Route::get('/spotify/get_saved_tracks/{access_token}', [SpotifyController::class, 'getSavedTracks']);
 Route::get('/callback', [SpotifyController::class, 'callback']);
 
-Route::get('/tracks', [TracksController::class, 'index'])->name('tracks');
+Route::get('/tracks', [TracksController::class, 'index'])->name('tracks.index');
+Route::get('/tracks/get_tracks', [TracksController::class, 'get_tracks'])->name('tracks.get_tracks');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
