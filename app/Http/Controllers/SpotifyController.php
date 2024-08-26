@@ -105,8 +105,10 @@ class SpotifyController extends Controller
     {
         $tracks_array = [];
         $saved_tracks = Http::withToken($access_token)->get('https://api.spotify.com/v1/me/tracks?limit=50')->json();
+
         foreach ($saved_tracks['items'] as $track) {
             $entity = Track::firstOrCreate([
+                'user_id' => Auth::id(),
                 'track_id' => $track['track']['id'],
             ]);
 
@@ -118,13 +120,16 @@ class SpotifyController extends Controller
                 'album_id' => $track['track']['album']['id'],
                 'popularity' => $track['track']['popularity'],
                 'uri' => $track['track']['uri'],
+                'preview_link' => $track['track']['preview_url'],
             ]);
 
             $tracks_array[] = $entity;
         }
+        file_put_contents('tracks.csv', json_encode($saved_tracks));
         $count = 50;
         while ($count < $saved_tracks['total']) {
             $saved_tracks = Http::withToken($access_token)->get('https://api.spotify.com/v1/me/tracks?limit=50&offset=' . $count)->json();
+
             foreach ($saved_tracks['items'] as $track) {
                 $entity = Track::firstOrCreate([
                     'user_id' => Auth::id(),
@@ -139,10 +144,12 @@ class SpotifyController extends Controller
                     'album_id' => $track['track']['album']['id'],
                     'popularity' => $track['track']['popularity'],
                     'uri' => $track['track']['uri'],
+                    'preview_link' => $track['track']['preview_url'],
                 ]);
 
                 $tracks_array[] = $entity;
             }
+            file_put_contents('tracks2.csv', json_encode($saved_tracks));
             $count += 50;
         }
         $this->updateTracksByAlbum($access_token);

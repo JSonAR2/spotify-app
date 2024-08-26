@@ -31,5 +31,6 @@ class Track extends Model
         'tempo',
         'time_signature',
         'valence',
+        'preview_link'
     ];
 }
