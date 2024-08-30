@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Track;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 class TracksController extends Controller
 {
@@ -14,18 +15,11 @@ class TracksController extends Controller
     public function index(Request $request)
     {
         $searchTerm = $request->input('q');
-        $tracks = Track::where('user_id', Auth::id())->when($request->has('sort_field'), function ($query) use ($request) {
-            $sortField = $request->input('sort_field');
-            $sortDir = $request->input('sort_dir', 'asc');
-            $query->orderBy($sortField, $sortDir);
-        })->paginate(50);
-        if (
-            $request->header('hx-request')
-            && $request->header('hx-target') == 'table-container'
-        ) {
-            return view('tracks.partials.table', compact('tracks'));
-        }
-        return view('tracks.index', compact('tracks'));
+        $tracks = Track::where('user_id', Auth::id())->get();
+
+        return Inertia::render('Tracks/index', [
+            'tracks' => $tracks,
+        ]);    
     }
 
     public function get_tracks()

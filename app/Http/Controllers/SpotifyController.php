@@ -42,9 +42,10 @@ class SpotifyController extends Controller
         // $this->createPlaylistByFeature($access_token, 'Dancy', 'danceability', 0.8, 300);
         // dump($tracks_array);
 
-        return view('spotify.index', [
-            // 'user' => $request->user(),
-        ]);
+            return Inertia::render('Spotify/index', [
+
+            ]);
+        
     }
 
     public function getUserAccessToken()
