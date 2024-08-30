@@ -3,8 +3,6 @@ import { DataGrid } from "@mui/x-data-grid";
 import Paper from "@mui/material/Paper";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlay, faPause } from "@fortawesome/free-solid-svg-icons";
-import ReactAudioPlayer from "react-audio-player";
-import { useRef } from "react";
 
 const columns = [
     { field: "id", headerName: "ID", width: 20 },
