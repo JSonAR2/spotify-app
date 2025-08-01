@@ -8,7 +8,10 @@ use Illuminate\View\View;
 use Illuminate\Support\Facades\Http;
 use App\Models\User;
 use App\Models\Track;
+use App\Models\Playlist;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
+use Carbon\Carbon;
 
 
 class SpotifyController extends Controller
@@ -27,10 +30,11 @@ class SpotifyController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index()
     {
         // $access_token = $this->getClientAccessToken();
-        $access_token = $this->getUserAccessToken();
+        // $access_token = $this->getUserAccessToken();
+        $expired = Carbon::parse(Auth::user()->token_last_acquired)->diffInMinutes(now()) > 60;
 
 
         // $response = $this->getSavedTracks($access_token);
@@ -42,10 +46,9 @@ class SpotifyController extends Controller
         // $this->createPlaylistByFeature($access_token, 'Dancy', 'danceability', 0.8, 300);
         // dump($tracks_array);
 
-            return Inertia::render('Spotify/index', [
-
-            ]);
-        
+        return Inertia::render('Spotify/index', [
+            'expired' => $expired,
+        ]);
     }
 
     public function getUserAccessToken()
@@ -76,11 +79,6 @@ class SpotifyController extends Controller
         ];
 
         return redirect('https://accounts.spotify.com/authorize?client_id=fa83b94e477f46619c9c8b18ccf25f79&response_type=code&redirect_uri=https://playlistrix.co.uk/callback&show_dialog=true&scope=' . implode('%20', $scopes));
-        // $response = Http::asForm()->post('https://accounts.spotify.com/api/token', [
-        //     'client_id' => 'fa83b94e477f46619c9c8b18ccf25f79',
-        //     'response_type' => 'code',
-        //     'redirect_uri' => 'http://localhost:8000/callback',
-        // ]);
     }
 
     public function callback(Request $request)
@@ -102,11 +100,13 @@ class SpotifyController extends Controller
         return redirect()->route('spotify');
     }
 
-    public function getSavedTracks($access_token)
+    public function getSavedTracks(Request $request)
     {
+        $user = Auth::user();
+        $access_token = $user->spotify_access_token;
         $tracks_array = [];
         $saved_tracks = Http::withToken($access_token)->get('https://api.spotify.com/v1/me/tracks?limit=50')->json();
-
+        // dump($saved_tracks);
         foreach ($saved_tracks['items'] as $track) {
             $entity = Track::firstOrCreate([
                 'user_id' => Auth::id(),
@@ -122,6 +122,8 @@ class SpotifyController extends Controller
                 'popularity' => $track['track']['popularity'],
                 'uri' => $track['track']['uri'],
                 'preview_link' => $track['track']['preview_url'],
+                'is_saved' => true,
+                'added_at' => Carbon::parse($track['added_at']),
             ]);
 
             $tracks_array[] = $entity;
@@ -146,6 +148,8 @@ class SpotifyController extends Controller
                     'popularity' => $track['track']['popularity'],
                     'uri' => $track['track']['uri'],
                     'preview_link' => $track['track']['preview_url'],
+                    'is_saved' => true,
+                    'added_at' => Carbon::parse($track['added_at']),
                 ]);
 
                 $tracks_array[] = $entity;
@@ -157,15 +161,105 @@ class SpotifyController extends Controller
         return redirect()->route('spotify');
     }
 
-    public function getPlaylists($access_token)
+    public function getPlaylists(Request $request)
     {
-        $playlists = Http::withToken($access_token)->get('https://api.spotify.com/v1/me/playlists')->json()['items'];
+        $user = Auth::user();
+        $access_token = $user->spotify_access_token;
+        $playlists = Http::withToken($access_token)->retry(3, 10000)->get('https://api.spotify.com/v1/me/playlists?limit=50')->json()['items'];
+        $playlists_array = [];
+        foreach ($playlists as $playlist) {
+            $playlists_array[] = $playlist;
+        }
+        if (count($playlists_array) == 50) {
+            while (count($playlists) == 50) {
+                $playlists = Http::withToken($access_token)->retry(3, 10000)->get('https://api.spotify.com/v1/me/playlists?limit=50&offset=' . count($playlists_array))->json()['items'];
+                foreach ($playlists as $playlist) {
+                    $playlists_array[] = $playlist;
+                }
+            }
+        }
+        $playlists_array = array_reverse($playlists_array);
+        foreach ($playlists_array as $playlist) {
+            if ($playlist['id'] == '0E2ApRdiYataXbFB8YDcrm') {
+                dd($playlist);
+            } else {
+                continue;
+            }
+
+            $entity = Playlist::firstOrCreate([
+                'user_id' => Auth::id(),
+                'spotify_id' => $playlist['id'],
+            ]);
+
+            if ($entity->track_count == $playlist['tracks']['total']) {
+                continue;
+            }
+
+            $entity->update([
+                'name' => $playlist['name'],
+                'description' => $playlist['description'],
+                'track_count' => $playlist['tracks']['total'],
+                'collaborative' => $playlist['collaborative'],
+            ]);
+
+            $entity->save();
+
+            $this->getPlaylistTracks($access_token, $entity, $entity->spotify_id);
+            sleep(5);
+        }
+
+
+
         return $playlists;
     }
 
-    public function getPlaylistTracks($access_token, $playlist_id)
+    public function getPlaylistTracks($access_token, $playlist, $spotify_playlist_id)
     {
-        $playlist_tracks = Http::withToken($access_token)->get('https://api.spotify.com/v1/playlists/' . $playlist_id . '/tracks')->json();
+        $playlist_tracks = Http::withToken($access_token)->timeout(30)->retry(3, 10000)->get('https://api.spotify.com/v1/playlists/' . $spotify_playlist_id . '/tracks?limit=50')->json()['items'];
+        $tracks_array = [];
+        foreach ($playlist_tracks as $playlist_track) {
+            $tracks_array[] = $playlist_track;
+        }
+        if (count($playlist_tracks) == 50) {
+            while (count($playlist_tracks) == 50) {
+                $playlist_tracks = Http::withToken($access_token)->timeout(30)->retry(3, 10000)->get('https://api.spotify.com/v1/playlists/' . $spotify_playlist_id . '/tracks?offset=' . count($tracks_array))->json()['items'];
+                foreach ($playlist_tracks as $playlist_track) {
+                    $tracks_array[] = $playlist_track;
+                }
+            }
+        }
+        $playlist_track_ids = [];
+        foreach ($tracks_array  as $track) {
+            if ($track['track'] == null) {
+                dump($track);
+                continue;
+            }
+            $entity = Track::firstOrCreate([
+                'user_id' => Auth::id(),
+                'track_id' => $track['track']['id'],
+            ]);
+            $is_saved = $entity->is_saved;
+            if ($entity->is_saved == null || $entity->is_saved == false) {
+                $is_saved = false;
+            }
+
+            $entity->update([
+                'name' => $track['track']['name'],
+                'artist_name' => $track['track']['artists'][0]['name'],
+                'artist_id' => $track['track']['artists'][0]['id'],
+                'album_name' => $track['track']['album']['name'],
+                'album_id' => $track['track']['album']['id'],
+                'popularity' => $track['track']['popularity'],
+                'uri' => $track['track']['uri'],
+                'preview_link' => $track['track']['preview_url'],
+                'is_saved' => $is_saved,
+                'added_at' => Carbon::parse($track['added_at']),
+            ]);
+
+            $entity->save();
+            $playlist_track_ids[] = $entity->id;
+        }
+        $playlist->tracks()->sync($playlist_track_ids);
         return $playlist_tracks;
     }
 
@@ -180,6 +274,11 @@ class SpotifyController extends Controller
             $track_id_array[] = $track->track_id;
             if ($count == 20) {
                 $artist_info = Http::withToken($access_token)->get('https://api.spotify.com/v1/artists?ids=' . implode(',', $id_array))->json();
+                if (!isset($artist_info['artists'])) {
+                    dump($artist_info);
+                    $id_array = [];
+                    continue;
+                }
                 foreach ($artist_info['artists'] as $artist) {
                     $tracks = Track::where('artist_id', $artist['id']);
                     // dump($tracks->count());
@@ -201,34 +300,34 @@ class SpotifyController extends Controller
                         }
                     }
                 }
-                $audio_features = Http::withToken($access_token)->get('https://api.spotify.com/v1/audio-features?ids=' . implode(',', $track_id_array))->json();
-                // dump($audio_features);
-                if (isset($audio_features['error'])) {
-                    dump($audio_features);
-                    exit;
-                }
-                $audio_features = $audio_features['audio_features'];
-                foreach ($audio_features as $feature) {
-                    if ($feature == null) {
-                        continue;
-                    }
-                    $track = Track::where('track_id', $feature['id'])->first();
-                    $track->update([
-                        'danceability' => $feature['danceability'],
-                        'energy' => $feature['energy'],
-                        'key' => $feature['key'],
-                        'loudness' => $feature['loudness'],
-                        'mode' => $feature['mode'],
-                        'speechiness' => $feature['speechiness'],
-                        'acousticness' => $feature['acousticness'],
-                        'instrumentalness' => $feature['instrumentalness'],
-                        'liveness' => $feature['liveness'],
-                        'valence' => $feature['valence'],
-                        'tempo' => $feature['tempo'],
-                        'time_signature' => $feature['time_signature']
-                    ]);
-                    $track->save();
-                }
+                // $audio_features = Http::withToken($access_token)->get('https://api.spotify.com/v1/audio-features?ids=' . implode(',', $track_id_array))->json();
+                // // dump($audio_features);
+                // if (isset($audio_features['error'])) {
+                //     dump($audio_features);
+                //     exit;
+                // }
+                // $audio_features = $audio_features['audio_features'];
+                // foreach ($audio_features as $feature) {
+                //     if ($feature == null) {
+                //         continue;
+                //     }
+                //     $track = Track::where('track_id', $feature['id'])->first();
+                //     $track->update([
+                //         'danceability' => $feature['danceability'],
+                //         'energy' => $feature['energy'],
+                //         'key' => $feature['key'],
+                //         'loudness' => $feature['loudness'],
+                //         'mode' => $feature['mode'],
+                //         'speechiness' => $feature['speechiness'],
+                //         'acousticness' => $feature['acousticness'],
+                //         'instrumentalness' => $feature['instrumentalness'],
+                //         'liveness' => $feature['liveness'],
+                //         'valence' => $feature['valence'],
+                //         'tempo' => $feature['tempo'],
+                //         'time_signature' => $feature['time_signature']
+                //     ]);
+                //     $track->save();
+                // }
                 $count = 0;
                 $track_id_array = [];
                 $id_array = [];
@@ -244,29 +343,41 @@ class SpotifyController extends Controller
         // }
     }
 
-    public function createPlaylist($access_token, $playlist_type)
+    public function createPlaylist($playlist_type)
     {
+        $access_token = $this->getUserAccessToken();
         $pop_tracks = Track::where('genres', 'like', '%' . $playlist_type . '%')->get();
+        // dd($pop_tracks);
         $playlist = Http::withToken($access_token)->post('https://api.spotify.com/v1/me/playlists', [
-            'name' => ucfirst($playlist_type) . ' Tracks from Liked Songs',
+            'name' => ucfirst($playlist_type) . ' Tracks',
             'description' => 'A playlist of the ' . $playlist_type . ' tracks in your saved songs',
             'public' => false,
         ])->json();
 
         $playlist_id = $playlist['id'];
         $track_uris = [];
+
         foreach ($pop_tracks as $track) {
             $track_uris[] = $track->uri;
             if (count($track_uris) == 100) {
-                $response = Http::withToken($access_token)->post('https://api.spotify.com/v1/playlists/' . $playlist_id . '/tracks', [
+                Http::withToken($access_token)->post('https://api.spotify.com/v1/playlists/' . $playlist_id . '/tracks', [
                     'uris' => $track_uris,
                 ]);
                 $track_uris = [];
             }
         }
-        $response = Http::withToken($access_token)->post('https://api.spotify.com/v1/playlists/' . $playlist_id . '/tracks', [
+
+        Http::withToken($access_token)->post('https://api.spotify.com/v1/playlists/' . $playlist_id . '/tracks', [
             'uris' => $track_uris,
         ]);
+    }
+
+    public function previewPlaylist($playlist_type)
+    {
+        $access_token = $this->getUserAccessToken();
+        $pop_tracks = Track::where('genres', 'like', '%' . $playlist_type . '%')->get();
+
+        return $pop_tracks;
     }
 
     public function createPlaylistByFeature($access_token, $name, $feature, $min, $max)

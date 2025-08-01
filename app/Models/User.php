@@ -46,4 +46,9 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function tracks()
+    {
+        return $this->belongsToMany(Track::class, 'tracks_users', 'user_id', 'track_id');
+    }
 }

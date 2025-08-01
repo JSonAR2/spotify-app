@@ -31,6 +31,19 @@ class Track extends Model
         'tempo',
         'time_signature',
         'valence',
-        'preview_link'
+        'preview_link',
+        'is_saved',
+        'added_at',
     ];
+
+
+    public function playlists()
+    {
+        return $this->belongsToMany(Playlist::class);
+    }
+
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'tracks_users', 'track_id', 'user_id');
+    }
 }

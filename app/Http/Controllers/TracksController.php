@@ -6,6 +6,7 @@ use App\Models\Track;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use App\Models\User;
 
 class TracksController extends Controller
 {
@@ -15,16 +16,17 @@ class TracksController extends Controller
     public function index(Request $request)
     {
         $searchTerm = $request->input('q');
-        $tracks = Track::where('user_id', Auth::id())->get();
+
+        $tracks = User::find(Auth::id())->tracks()->withCount('playlists')->orderBy('added_at')->get();
 
         return Inertia::render('Tracks/index', [
             'tracks' => $tracks,
-        ]);    
+        ]);
     }
 
     public function get_tracks()
     {
-        $tracks = Track::where('user_id', Auth::id())->get();
+        $tracks = User::find(Auth::id())->tracks()->withCount('playlists')->orderBy('added_at')->get();
         return response()->json($tracks);
     }
 
