@@ -12,6 +12,7 @@ class SpotifyGetSavedTracks implements ShouldQueue
     use Queueable;
     protected $spotifyService;
     protected $user;
+    public $timeout = 600;
     /**
      * Create a new job instance.
      */
