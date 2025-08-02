@@ -12,8 +12,7 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import axios from "axios";
-import Snackbar from "@mui/material/Snackbar";
-
+import { useSnackbar } from "notistack";
 const Item = styled(Paper)(({ theme }) => ({
     backgroundColor: "#fff",
     ...theme.typography.body2,
@@ -31,6 +30,7 @@ export default function SpotifyIndex({ auth, expired }) {
     const [open, setOpen] = useState(false);
     const [snackOpen, setSnackOpen] = useState(false);
     const [message, setMessage] = useState("");
+    const { enqueueSnackbar } = useSnackbar();
 
     const getPlaylistTracks = (type) => {
         axios.get(`/spotify/preview_playlist/${type}`).then((response) => {
@@ -59,8 +59,10 @@ export default function SpotifyIndex({ auth, expired }) {
             .get("/spotify/get_saved_tracks")
             .then((response) => {
                 console.log("Saved tracks fetched", response.data);
-                setSnackOpen(true);
-                setMessage(response.data.message);
+                enqueueSnackbar(response.data.message, {
+                    variant: "success",
+                    autoHideDuration: 3000,
+                });
             })
             .catch((error) => {
                 console.error(
@@ -74,8 +76,11 @@ export default function SpotifyIndex({ auth, expired }) {
         axios
             .get("/spotify/get_playlists")
             .then((response) => {
-                setSnackOpen(true);
-                setMessage(response.data.message);
+                console.log("Playlists fetched", response.data);
+                enqueueSnackbar(response.data.message, {
+                    variant: "success",
+                    autoHideDuration: 3000,
+                });
             })
             .catch((error) => {
                 console.error("There was an error fetching playlists!", error);
@@ -96,12 +101,13 @@ export default function SpotifyIndex({ auth, expired }) {
             }
         >
             <Head title="Spotify" />
-            <Snackbar
+            {/* <Snackbar
                 anchorOrigin={{ vertical: "top", horizontal: "right" }}
                 open={snackOpen}
                 onClose={handleClose}
                 message={message}
-            />
+                key={message}
+            /> */}
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">

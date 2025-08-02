@@ -4,10 +4,30 @@ import Dropdown from "@/Components/Dropdown";
 import NavLink from "@/Components/NavLink";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink";
 import { Link } from "@inertiajs/react";
+import { useEffect, useRef } from "react";
+import { Button } from "@mui/material";
+import { useSnackbar } from "notistack";
 
 export default function Authenticated({ user, header, children }) {
+    const { enqueueSnackbar } = useSnackbar();
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
+    const [event, setEvent] = useState(null);
+    window.Echo.channel(`App.Models.User.${user.id}`).listen(
+        "JobCompletedEvent",
+        (e) => {
+            // setNotifications([e.content, ...notifications]);
+            setEvent(e.content);
+        }
+    );
+
+    useEffect(() => {
+        if (event === null) return;
+        enqueueSnackbar(event.message, {
+            variant: "success",
+            autoHideDuration: 3000,
+        });
+    }, [event]);
 
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -195,7 +215,6 @@ export default function Authenticated({ user, header, children }) {
                     </div>
                 </div>
             </nav>
-
             {header && (
                 <header className="bg-white dark:bg-gray-800 shadow">
                     <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
@@ -203,7 +222,6 @@ export default function Authenticated({ user, header, children }) {
                     </div>
                 </header>
             )}
-
             <main>{children}</main>
         </div>
     );

@@ -5,6 +5,7 @@ namespace App\Jobs;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use App\Services\SpotifyService;
+use App\Events\JobCompletedEvent;
 
 class SpotifyGetPlaylists implements ShouldQueue
 {
@@ -26,5 +27,9 @@ class SpotifyGetPlaylists implements ShouldQueue
     public function handle(): void
     {
         $this->spotifyService->getPlaylists($this->user);
+        broadcast(new JobCompletedEvent([
+            'user_id' => $this->user->id,
+            'message' => 'Playlists fetched successfully',
+        ]));
     }
 }
