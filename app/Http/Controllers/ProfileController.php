@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Models\User;
 
 class ProfileController extends Controller
 {
@@ -59,5 +60,23 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+
+    public function view_profile(Request $request, $id = null)
+    {
+        if ($id) {
+            $user = User::findOrFail($id);
+        } else {
+            $user = Auth::user();
+        }
+
+        $tracks = $user->tracks()->with('genres')->get();
+        $playlists = $user->playlists()->orderBy('created_at')->get();
+
+        return Inertia::render('Profile/View', [
+            'user' => $user,
+            'tracks' => $tracks,
+            'playlists' => $playlists,
+        ]);
     }
 }

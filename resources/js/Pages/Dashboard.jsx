@@ -42,7 +42,7 @@ export default function Dashboard({ auth, ...props }) {
                     </Card>
                 </div>
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 flex justify-between mt-2">
-                    <Card sx={{ width: "48%" }}>
+                    <Card sx={{ width: "33%" }}>
                         <CardHeader title="Top 5 Artists" />
                         <CardContent>
                             {props.top_5_artists &&
@@ -54,13 +54,24 @@ export default function Dashboard({ auth, ...props }) {
                                 ))}
                         </CardContent>
                     </Card>
-                    <Card sx={{ width: "48%" }}>
+                    <Card sx={{ width: "33%" }}>
                         <CardHeader title="Top 5 Tracks" />
                         <CardContent>
                             {props.top_5_tracks &&
                                 props.top_5_tracks.map((track, index) => (
                                     <div key={index}>
                                         {track.name} - {track.artist_name}
+                                    </div>
+                                ))}
+                        </CardContent>
+                    </Card>
+                    <Card sx={{ width: "33%" }}>
+                        <CardHeader title="Top 5 Genres" />
+                        <CardContent>
+                            {props.top_5_genres &&
+                                props.top_5_genres.map((genre, index) => (
+                                    <div key={index}>
+                                        {genre.name} - {genre.track_count}
                                     </div>
                                 ))}
                         </CardContent>

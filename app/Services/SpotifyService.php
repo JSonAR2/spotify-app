@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Genres;
 use Illuminate\Support\Facades\Http;
 use App\Models\Track;
 use App\Models\User;
@@ -116,17 +117,26 @@ class SpotifyService
                 foreach ($artist_info['artists'] as $artist) {
 
                     $tracks = Track::where('artist_id', $artist['id']);
+
                     if ($tracks->count() == 1) {
                         $track = $tracks->first();
 
                         $track->update(['genres' => implode(',', $artist['genres'])]);
-
+                        foreach ($artist['genres'] as $genre) {
+                            $saved_genre = Genres::firstOrCreate(['name' => ucwords($genre)]);
+                            $track->genres()->sync($saved_genre->id);
+                        }
                         $track->save();
                     } else {
                         $tracks = $tracks->get();
                         foreach ($tracks as $track) {
                             $track->update(['genres' => implode(',', $artist['genres'])]);
                             $track->save();
+
+                            foreach ($artist['genres'] as $genre) {
+                                $saved_genre = Genres::firstOrCreate(['name' => ucwords($genre)]);
+                                $track->genres()->sync($saved_genre->id);
+                            }
                         }
                     }
                 }

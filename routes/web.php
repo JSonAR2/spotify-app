@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\HomeController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -8,22 +9,23 @@ use App\Http\Controllers\TracksController;
 use App\Http\Controllers\SpotifyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PlaylistsController;
+use App\Http\Controllers\GenresController;
+use App\Http\Controllers\CommunityController;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
-
-
+Route::get('/', [HomeController::class, 'index'])->name('home');
 
 Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    // Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+
+
+
+    Route::controller(ProfileController::class)->group(function () {
+
+        Route::get('/profile/edit', 'edit')->name('profile.edit');
+        Route::patch('/profile', 'update')->name('profile.update');
+        Route::delete('/profile', 'destroy')->name('profile.destroy');
+        Route::get('/profile/{id?}', 'view_profile')->name('profile');
+    });
 
     Route::controller(DashboardController::class)->group(function () {
         Route::get('/dashboard', 'index')->name('dashboard');
@@ -53,6 +55,7 @@ Route::middleware('auth')->group(function () {
 
     Route::controller(TracksController::class)->group(function () {
         Route::get('/tracks', 'index')->name('tracks');
+        Route::post('/tracks/get_tracks', 'getTracks')->name('tracks.get_tracks');
     });
 
     Route::controller(PlaylistsController::class)->group(function () {
@@ -62,6 +65,18 @@ Route::middleware('auth')->group(function () {
             Route::delete('/delete_playlist', 'delete_playlist')->name('playlists.delete_playlist');
         });
     });
+
+    Route::controller(GenresController::class)->group(function () {
+        Route::get('/genres', 'index')->name('genres');
+    });
+
+
+    Route::controller(CommunityController::class)->group(function () {
+        Route::prefix('community')->group(function () {
+            Route::get('/', 'index')->name('community');
+        });
+    });
+
 
     Route::get('/tracks', [TracksController::class, 'index'])->name('tracks');
 });

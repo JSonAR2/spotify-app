@@ -56,4 +56,17 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Playlist::class, 'playlists_users', 'user_id', 'playlist_id');
     }
+
+    public function genres()
+    {
+        // Users have tracks, and tracks have genres.
+        // This method returns the genres associated with the user's tracks.
+        // It uses a belongsToMany relationship to get genres through tracks.
+        return Genres::whereIn('id', function ($query) {
+            $query->select('genre_id')
+                ->from('genres_tracks')
+                ->whereIn('track_id', $this->tracks()->pluck('tracks.id'));
+        });
+        // )->whereIn('track_id', $this->tracks()->pluck('tracks.id'));
+    }
 }

@@ -38,6 +38,12 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
+        $top_5_genres = $user->genres()
+            ->withCount('tracks as track_count')
+            ->orderBy('track_count', 'desc')
+            ->limit(5)
+            ->get();
+
         return Inertia::render('Dashboard', [
             'saved_tracks' => $saved_tracks,
             'your_tracks' => $your_tracks,
@@ -46,6 +52,7 @@ class DashboardController extends Controller
             'number_of_different_albums' => $number_of_different_albums,
             'top_5_artists' => $top_5_artists,
             'top_5_tracks' => $top_5_tracks,
+            'top_5_genres' => $top_5_genres,
         ]);
     }
 }

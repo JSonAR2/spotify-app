@@ -1,10 +1,12 @@
 import * as React from "react";
-import { DataGrid } from "@mui/x-data-grid";
 import Paper from "@mui/material/Paper";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlay, faPause } from "@fortawesome/free-solid-svg-icons";
 import axios from "axios";
 import { Button } from "@mui/material";
+import { useState, useMemo } from "react";
+import { DataGrid } from "@mui/x-data-grid";
+import { useMockServer } from "./Server";
 
 const columns = [
     { field: "id", headerName: "ID" },
@@ -22,67 +24,6 @@ const columns = [
         headerName: "Popularity",
         width: 130,
     },
-    // {
-    //     field: "acousticness",
-    //     headerName: "Acouticness",
-    //     width: 130,
-    //     valueGetter: (value, row) =>
-    //         `${parseInt(row.acousticness * 100) + "%" || ""}`,
-    // },
-    // {
-    //     field: "danceability",
-    //     headerName: "Danceability",
-    //     width: 130,
-    //     valueGetter: (value, row) =>
-    //         `${parseInt(row.danceability * 100) + "%" || ""}`,
-    // },
-    // {
-    //     field: "energy",
-    //     headerName: "Energy",
-    //     width: 130,
-    //     valueGetter: (value, row) =>
-    //         `${parseInt(row.energy * 100) + "%" || ""}`,
-    // },
-    // {
-    //     field: "instrumentalness",
-    //     headerName: "Instrumentalness",
-    //     width: 130,
-    //     valueGetter: (value, row) =>
-    //         `${parseInt(row.instrumentalness * 100) + "%" || ""}`,
-    // },
-    // {
-    //     field: "tempo",
-    //     headerName: "Tempo",
-    //     width: 130,
-    //     valueGetter: (value, row) => `${parseInt(row.tempo) + " BPM" || ""}`,
-    // },
-    // {
-    //     field: "valence",
-    //     headerName: "Happiness",
-    //     width: 130,
-    //     valueGetter: (value, row) =>
-    //         `${parseInt(row.valence * 100) + "%" || ""}`,
-    // },
-    // {
-    //     field: "preview_url",
-    //     headerName: "Preview",
-    //     sortable: false,
-    //     width: 160,
-    //     renderCell: function (params) {
-    //         if (params.row.preview_link) {
-    //             return (
-    //                 <div>
-    //                     <FontAwesomeIcon icon={faPlay} />
-    //                     <audio
-    //                         id={params.row.track_id}
-    //                         src={params.row.preview_link}
-    //                     ></audio>
-    //                 </div>
-    //             );
-    //         }
-    //         return <div>No preview</div>;
-    //     },
-    // },
     {
         field: "play",
         headerName: "Play",
@@ -180,6 +121,129 @@ const playAlbum = (album_id) => {
         });
 };
 
+const paginationModel = { page: 0, pageSize: 20 };
+
+export default function TracksTable({ tracks }) {
+    const initialState = {
+        pagination: { paginationModel, rowCount: 0 },
+        columns: { columnVisibilityModel: { id: false } },
+    };
+
+    const customDataSource = {
+        getRows: async (params) => {
+            console.log("Custom data source params:", params);
+            try {
+                const response = await axios.post(`/tracks/get_tracks`, {
+                    paginationModel: params.paginationModel,
+                    filterModel: params.filterModel,
+                    sortModel: params.sortModel,
+                });
+                console.log("Response from custom data source:", response);
+                const data = response.data;
+                console.log("Data fetched:", data);
+                return {
+                    rows: data.tracks,
+                    rowCount: data.track_count,
+                };
+            } catch (error) {
+                console.error(
+                    "Error fetching data from custom data source:",
+                    error
+                );
+                return {
+                    rows: [],
+                    rowCount: 0,
+                };
+            }
+        },
+    };
+    console.log(initialState);
+    return (
+        <Paper sx={{ width: "100%" }}>
+            <DataGrid
+                columns={columns}
+                dataSource={customDataSource}
+                pagination
+                pageSizeOptions={[10, 20, 50]}
+                initialState={initialState}
+                showToolbar
+                disableColumnFilter
+                onDataSourceError={(error) => {
+                    console.error("Data source error:", error);
+                    return {
+                        rows: [],
+                        rowCount: 0,
+                    };
+                }}
+            />
+        </Paper>
+    );
+}
+
+// Legacy audio features + Columns
+
+// {
+//     field: "acousticness",
+//     headerName: "Acouticness",
+//     width: 130,
+//     valueGetter: (value, row) =>
+//         `${parseInt(row.acousticness * 100) + "%" || ""}`,
+// },
+// {
+//     field: "danceability",
+//     headerName: "Danceability",
+//     width: 130,
+//     valueGetter: (value, row) =>
+//         `${parseInt(row.danceability * 100) + "%" || ""}`,
+// },
+// {
+//     field: "energy",
+//     headerName: "Energy",
+//     width: 130,
+//     valueGetter: (value, row) =>
+//         `${parseInt(row.energy * 100) + "%" || ""}`,
+// },
+// {
+//     field: "instrumentalness",
+//     headerName: "Instrumentalness",
+//     width: 130,
+//     valueGetter: (value, row) =>
+//         `${parseInt(row.instrumentalness * 100) + "%" || ""}`,
+// },
+// {
+//     field: "tempo",
+//     headerName: "Tempo",
+//     width: 130,
+//     valueGetter: (value, row) => `${parseInt(row.tempo) + " BPM" || ""}`,
+// },
+// {
+//     field: "valence",
+//     headerName: "Happiness",
+//     width: 130,
+//     valueGetter: (value, row) =>
+//         `${parseInt(row.valence * 100) + "%" || ""}`,
+// },
+// {
+//     field: "preview_url",
+//     headerName: "Preview",
+//     sortable: false,
+//     width: 160,
+//     renderCell: function (params) {
+//         if (params.row.preview_link) {
+//             return (
+//                 <div>
+//                     <FontAwesomeIcon icon={faPlay} />
+//                     <audio
+//                         id={params.row.track_id}
+//                         src={params.row.preview_link}
+//                     ></audio>
+//                 </div>
+//             );
+//         }
+//         return <div>No preview</div>;
+//     },
+// },
+
 // const playAudio = (track_id) => {
 // const audio = document.getElementById(track_id);
 // const all_audio = document.getElementsByTagName("audio");
@@ -209,26 +273,3 @@ const playAlbum = (album_id) => {
 //     playAudio(params.row.id);
 //     // }
 // };
-
-const paginationModel = { page: 0, pageSize: 20 };
-
-export default function TracksTable({ tracks }) {
-    return (
-        <Paper sx={{ width: "100%" }}>
-            <DataGrid
-                rows={tracks}
-                columns={columns}
-                initialState={{
-                    pagination: { paginationModel },
-                    columns: { columnVisibilityModel: { id: false } },
-                }}
-                pageSizeOptions={[5, 10]}
-                checkboxSelection
-                disableVirtualization
-                sx={{ border: 0 }}
-                disableRowSelectionOnClick
-                // onRowClick={handleRowClick}
-            />
-        </Paper>
-    );
-}

@@ -46,6 +46,24 @@ export default function Authenticated({ user, header, children }) {
                                 >
                                     Playlists
                                 </NavLink>
+                                <NavLink
+                                    href={route("genres")}
+                                    active={route().current("genres")}
+                                >
+                                    Genres
+                                </NavLink>
+                                <NavLink
+                                // href={route("genres")}
+                                // active={route().current("genres")}
+                                >
+                                    Sharing
+                                </NavLink>
+                                <NavLink
+                                    href={route("community")}
+                                    active={route().current("community")}
+                                >
+                                    Community
+                                </NavLink>
                             </div>
                         </div>
 
