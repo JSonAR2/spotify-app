@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import axios from "axios";
+import Snackbar from "@mui/material/Snackbar";
 
 const Item = styled(Paper)(({ theme }) => ({
     backgroundColor: "#fff",
@@ -24,10 +25,12 @@ const Item = styled(Paper)(({ theme }) => ({
     }),
 }));
 
-export default function SpotifyIndex({ auth }) {
+export default function SpotifyIndex({ auth, expired }) {
     const [playlistType, setPlaylistType] = useState("");
     const [tracks, setTracks] = useState([]);
     const [open, setOpen] = useState(false);
+    const [snackOpen, setSnackOpen] = useState(false);
+    const [message, setMessage] = useState("");
 
     const getPlaylistTracks = (type) => {
         axios.get(`/spotify/preview_playlist/${type}`).then((response) => {
@@ -51,6 +54,38 @@ export default function SpotifyIndex({ auth }) {
             });
     };
 
+    const getSavedTracks = () => {
+        axios
+            .get("/spotify/get_saved_tracks")
+            .then((response) => {
+                console.log("Saved tracks fetched", response.data);
+                setSnackOpen(true);
+                setMessage(response.data.message);
+            })
+            .catch((error) => {
+                console.error(
+                    "There was an error fetching saved tracks!",
+                    error
+                );
+            });
+    };
+
+    const getPlaylists = () => {
+        axios
+            .get("/spotify/get_playlists")
+            .then((response) => {
+                setSnackOpen(true);
+                setMessage(response.data.message);
+            })
+            .catch((error) => {
+                console.error("There was an error fetching playlists!", error);
+            });
+    };
+
+    const handleClose = () => {
+        setSnackOpen(false);
+        setMessage("");
+    };
     return (
         <AuthenticatedLayout
             user={auth.user}
@@ -61,14 +96,19 @@ export default function SpotifyIndex({ auth }) {
             }
         >
             <Head title="Spotify" />
-
+            <Snackbar
+                anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                open={snackOpen}
+                onClose={handleClose}
+                message={message}
+            />
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-6 text-gray-900 dark:text-gray-100">
                             {/* {auth.user.spotify_access_token != null} ? ( */}
                             <Stack spacing={1}>
-                                {auth.expired && (
+                                {expired && (
                                     <Item>
                                         <div>
                                             <div className="text-red-500 mb-3">
@@ -85,20 +125,14 @@ export default function SpotifyIndex({ auth }) {
                                     </Item>
                                 )}
                                 <Item>
-                                    <a
-                                        href={"/spotify/get_saved_tracks"}
-                                        className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-                                    >
+                                    <Button onClick={() => getSavedTracks()}>
                                         Get Saved Tracks
-                                    </a>
+                                    </Button>
                                 </Item>
                                 <Item>
-                                    <a
-                                        href={"/spotify/get_playlists"}
-                                        className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-                                    >
+                                    <Button onClick={() => getPlaylists()}>
                                         Get Playlists
-                                    </a>
+                                    </Button>
                                 </Item>
                                 <Item>
                                     <Input

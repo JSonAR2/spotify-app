@@ -18,7 +18,7 @@ class DashboardController extends Controller
         $tracks = $user->tracks;
         $your_tracks = $tracks->count();
 
-        $your_playlists = Playlist::where('user_id', Auth::id())->count();
+        $your_playlists = $user->playlists()->count();
         $saved_tracks = $tracks->where('is_saved', 1)->count();
         $number_of_different_artists = Track::whereIn('id', $tracks->pluck('id'))
             ->distinct('artist_name')

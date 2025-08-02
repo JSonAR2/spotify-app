@@ -33,6 +33,10 @@ const columns = [
         renderCell: (params) => (
             <div className="flex flex-wrap content-center h-full space-x-5">
                 <FontAwesomeIcon
+                    icon={faPlay}
+                    onClick={() => playPlaylist(params.row.id)}
+                />
+                <FontAwesomeIcon
                     icon={faEye}
                     onClick={() => viewTracks(params.row.id)}
                 />
@@ -44,6 +48,17 @@ const columns = [
         ),
     },
 ];
+
+const playPlaylist = (id) => {
+    axios
+        .post("/spotify/play_playlist", { id })
+        .then((response) => {
+            console.log("Playlist is playing", response.data);
+        })
+        .catch((error) => {
+            console.error("There was an error playing the playlist!", error);
+        });
+};
 
 const handleDelete = (id) => {
     if (confirm("Are you sure you want to delete this playlist?")) {

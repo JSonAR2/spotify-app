@@ -5,7 +5,7 @@ export default function ApplicationLogo(props) {
         // </svg>
         <img
             {...props}
-            src={"../images/text_logo.png"}
+            src={"/images/text_logo.png"}
             alt="Application Logo"
             className="block h-9 w-auto fill-current text-gray-800 dark:text-gray-200"
         />

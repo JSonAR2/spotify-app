@@ -16,7 +16,8 @@ class PlaylistsController extends Controller
      */
     public function index(Request $request)
     {
-        $playlists = Playlist::where('user_id', Auth::id())->orderBy('created_at')->get();
+        $user = Auth::user();
+        $playlists = $user->playlists()->orderBy('created_at')->get();
 
         return Inertia::render('Playlists/index', [
             'playlists' => $playlists,

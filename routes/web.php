@@ -44,6 +44,10 @@ Route::middleware('auth')->group(function () {
             Route::any('/create_playlist/{playlist_type}', 'createPlaylist')->name('spotify.create_playlist');
             Route::any('/preview_playlist/{playlist_type}', 'previewPlaylist')->name('spotify.get_playlist_tracks');
             Route::any('/create_playlist_by_feature/{playlist_type}', 'createPlaylistByFeature')->name('spotify.create_playlist_by_feature');
+            Route::post('/play_track', 'playTrack')->name('spotify.play_track');
+            Route::post('/add_track_to_queue', 'addTrackToQueue')->name('spotify.add_track_to_queue');
+            Route::post('/play_album', 'playAlbum')->name('spotify.play_album');
+            Route::post('/play_playlist', 'playPlaylist')->name('spotify.play_playlist');
         });
     });
 

@@ -23,8 +23,8 @@ class Playlist extends Model
         return $this->belongsToMany(Track::class);
     }
 
-    public function user()
+    public function users()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsToMany(User::class, 'playlists_users', 'playlist_id', 'user_id');
     }
 }
