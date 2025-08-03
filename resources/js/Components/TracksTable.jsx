@@ -157,7 +157,6 @@ export default function TracksTable({ tracks }) {
             }
         },
     };
-    console.log(initialState);
     return (
         <Paper sx={{ width: "100%" }}>
             <DataGrid

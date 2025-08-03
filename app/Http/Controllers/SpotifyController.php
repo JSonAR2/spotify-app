@@ -19,6 +19,7 @@ use App\Services\SpotifyService;
 class SpotifyController extends Controller
 {
     protected $spotifyService;
+    protected $expired;
 
     // initialise the controller
     public function __construct(SpotifyService $spotifyService)
@@ -27,9 +28,14 @@ class SpotifyController extends Controller
         // Check user access token and refresh if expired
         if (Auth::check()) {
             $user = Auth::user();
-            $expired = Carbon::parse($user->token_last_acquired)->diffInMinutes(now()) > 60;
-            if ($expired) {
-                $this->spotifyService->refreshToken();
+            if ($user->spotify_access_token == null) {
+                $this->expired = true;
+            } else {
+                $this->expired = Carbon::parse($user->token_last_acquired)->diffInMinutes(now()) > 60;
+                if ($this->expired) {
+                    $this->spotifyService->refreshToken();
+                    $this->expired = false;
+                }
             }
         }
     }
@@ -77,7 +83,7 @@ class SpotifyController extends Controller
     public function index()
     {
         // $access_token = $this->getUserAccessToken();
-        $expired = Carbon::parse(Auth::user()->token_last_acquired)->diffInMinutes(now()) > 60;
+        // $expired = Carbon::parse(Auth::user()->token_last_acquired)->diffInMinutes(now()) > 60;
 
 
         // $response = $this->getSavedTracks($access_token);
@@ -89,7 +95,7 @@ class SpotifyController extends Controller
         // $this->createPlaylistByFeature($access_token, 'Dancy', 'danceability', 0.8, 300);
 
         return Inertia::render('Spotify/index', [
-            'expired' => $expired,
+            'expired' => $this->expired,
         ]);
     }
 
